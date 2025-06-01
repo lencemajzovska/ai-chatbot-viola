@@ -1,0 +1,30 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtuell miljö
+.venv/
+venv/
+env/
+ENV/
+
+# Miljövariabler
+.env
+
+# Systemfiler
+.DS_Store
+Thumbs.db
+
+# IDE/Editor
+.vscode/
+.idea/
+
+# Streamlit
+.streamlit/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Auto-genererade embeddings
+embeddings.parquet
