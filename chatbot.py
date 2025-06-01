@@ -48,13 +48,13 @@ def chunk_text(text: str) -> list[str]:
     return chunks
 
 # Embeddings
-def create_embedding(text: str, model=EMBEDDING_MODEL, task_type="retrieval_document") -> list[float]:
-    response = client.embed_content(
+def create_embedding(text: str, model=EMBEDDING_MODEL, task_type="RETRIEVAL_DOCUMENT") -> list[float]:
+    response = client.models.embed_content(
         model=model,
-        content=text,
-        task_type=task_type
+        contents=text,
+        config=types.EmbedContentConfig(task_type=task_type)
     )
-    emb = response.embedding.values
+    emb = response.embeddings[0].values
     v = np.array(emb)
     return (v / np.linalg.norm(v)).tolist()
 
