@@ -6,11 +6,9 @@ Chattboten är tillgänglig via ett interaktivt webbgränssnitt byggt i **Stream
 
 ---
 
-## 🌐 Testa appen online
+## Testa appen online
 
-👉 [Öppna appen här](https://your-app-url.streamlit.app)
-
-> Denna AI-chattbot är endast tillgänglig via webbappen.
+👉 [Öppna appen här](https://chatbot-viola.streamlit.app)
 
 ---
 
