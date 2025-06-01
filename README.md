@@ -70,7 +70,5 @@ Notebooken `chatbot.ipynb` innehåller:
 
 **Observera:** Denna bot är endast ett informationsstöd.
 Den ersätter **inte** Försäkringskassans rådgivning eller beslut.
-Vid osäkerhet – kontakta alltid Försäkringskassan:
-**Telefon:** 0771-524 524
-**Webbplats:** https://www.forsakringskassan.se
+Vid osäkerhet kontakta alltid Försäkringskassan.
 
