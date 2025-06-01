@@ -6,6 +6,14 @@ Chattboten är tillgänglig via ett interaktivt webbgränssnitt byggt i **Stream
 
 ---
 
+## 🌐 Testa appen online
+
+👉 [Öppna appen här](https://your-app-url.streamlit.app)
+
+> Denna AI-chattbot är endast tillgänglig via webbappen.
+
+---
+
 ## Funktion
 
 - Använder förtränad Gemini-modell via Google AI Studio
@@ -22,37 +30,6 @@ Chattboten är tillgänglig via ett interaktivt webbgränssnitt byggt i **Stream
 - AI svarar endast utifrån källtext från Försäkringskassan
 - Länk till källa eller kontaktinformation visas vid osäkerhet
 - Klar och tydlig stil med användarfokus
-
----
-
-## Så kör du Streamlit-appen
-
-**1. Klona projektet**
-
-```bash
-git clone https://github.com/<ditt-användarnamn>/kunskapskontroll_2.git
-cd kunskapskontroll_2
-```
-
-**2. Skapa en `.env`-fil med din API-nyckel**
-
-```
-API_KEY=din_google_api_nyckel
-```
-
-Skapa nyckeln gratis: https://aistudio.google.com/app/apikey
-
-**3. Installera beroenden**
-
-```bash
-pip install -r requirements.txt
-```
-
-**4. Starta appen**
-
-```bash
-streamlit run app.py
-```
 
 ---
 
