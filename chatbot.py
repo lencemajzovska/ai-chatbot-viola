@@ -1,5 +1,6 @@
 import os
 import re
+import time
 import numpy as np
 import polars as pl
 import unicodedata
@@ -58,14 +59,25 @@ def create_embedding(text: str, model=EMBEDDING_MODEL, task_type="RETRIEVAL_DOCU
     v = np.array(emb)
     return (v / np.linalg.norm(v)).tolist()
 
+
 def load_or_build_embeddings(chunks: list[str]) -> tuple[list[str], list[list[float]]]:
     if not REBUILD and os.path.exists("embeddings.parquet"):
+        print("Laddar cachade embeddings från fil...")
         df = pl.read_parquet("embeddings.parquet")
         return df["texts"].to_list(), df["vectors"].to_list()
-    embeddings = [create_embedding(chunk) for chunk in chunks]
-    df = pl.DataFrame({"texts": chunks, "vectors": embeddings})
+
+    print("Genererar nya embeddings...")
+    embeddings = [create_embedding(chunk) for chunk in chunks if chunk.strip()]
+
+    # Filter out empty embeddings (from failed API calls)
+    valid_chunks = [chunk for chunk, emb in zip(chunks, embeddings) if emb]
+    valid_embeddings = [emb for emb in embeddings if emb]
+
+    # Save only valid embeddings
+    df = pl.DataFrame({"texts": valid_chunks, "vectors": valid_embeddings})
     df.write_parquet("embeddings.parquet")
-    return chunks, embeddings
+
+    return valid_chunks, valid_embeddings
 
 # VectorStore-klass
 class VectorStore:
@@ -107,13 +119,12 @@ Svara kortfattat och tydligt på det som efterfrågas.
 Om frågan gäller hur länge man kan få en ersättning, svara i antal dagar om sådan information finns i källtexten.
 Om frågan gäller åldersgränser eller andra villkor, nämn dem punktvis om det behövs.
 
-Om relevant information om frågan **saknas i källtexten**, svara:
-"Det framgår inte.
+Om frågan handlar om något annat än bostadsbidrag, sjukpenning eller föräldrapenning, till exempel aktivitetsersättning eller sjukersättning, svara alltid:
+"Jag kan bara svara på frågor som rör bostadsbidrag, sjukpenning och föräldrapenning.<br>
+För mer information kontakta Försäkringskassan på 0771-524 524 eller besök [forsakringskassan.se](https://www.forsakringskassan.se).""
 
-För mer information kontakta Försäkringskassan på 0771-524 524 eller besök [forsakringskassan.se](https://www.forsakringskassan.se)."
-
-Om frågan inte alls gäller bostadsbidrag, sjukpenning eller föräldrapenning, svara:
-"Jag kan bara svara på frågor som rör bostadsbidrag, sjukpenning och föräldrapenning."
+Om frågan handlar om bostadsbidrag, sjukpenning eller föräldrapenning men relevant information saknas i källtexten, svara:
+Det framgår inte. Kontakta Försäkringskassan på 0771-524 524 för mer information.
 
 Om någon frågar vad du heter, svara: "Jag heter Viola. Vad kan jag hjälpa dig med?"
 Om någon frågar vad de själva heter, svara: "Det vet jag inte."
@@ -121,18 +132,30 @@ Om någon frågar vad de själva heter, svara: "Det vet jag inte."
 Hitta inte på egna fakta.
 """
 
+
 # Frågefunktion för semantisk sökning och svarsgenerering
 def run_semantic_search(question: str, vs: VectorStore) -> str:
     q_emb = create_embedding(question)
+    if not q_emb:
+        return "Något gick fel vid skapandet av fråge-embedding. Försök igen eller kontrollera API-nyckeln."
+
     top_texts = vs.semantic_search(q_emb, k=K_TOP)
+    if not top_texts:
+        return "Jag hittade tyvärr inget svar på det i källmaterialet."
+
     context = "\n".join(top_texts)
     prompt = f"Fråga: {question}\n\nKONTEXT:\n{context}"
-    response = client.models.generate_content(
-        model=GENERATION_MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(system_instruction=system_prompt)
-    )
-    return response.text
+
+    try:
+        response = client.models.generate_content(
+            model=GENERATION_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(system_instruction=system_prompt)
+        )
+        return response.text
+    except Exception as e:
+        return f"Fel vid generering av svar: {e}"
+
 
 # Exporterar till Streamlit-app
 __all__ = [

@@ -1,4 +1,4 @@
-# Python cache
+# Python
 __pycache__/
 *.pyc
 *.pyo
@@ -22,9 +22,15 @@ Thumbs.db
 
 # Streamlit
 .streamlit/
+.cache/
 
 # Notebook checkpoints
 .ipynb_checkpoints/
 
-# Auto-genererade embeddings
+# Auto-genererade filer
 embeddings.parquet
+vs.pkl
+
+# Loggar och tillfälliga filer (om du använder)
+*.log
+*.html

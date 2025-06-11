@@ -7,20 +7,29 @@ from chatbot import (
 )
 
 # Grundinställningar för sidan
-st.set_page_config(page_title="Fråga Viola", layout="wide")
+st.set_page_config(page_title="Fråga Viola", layout="centered")
 
-# Initiera vectorstore och ladda embeddings och chunks
-vs = init_vectorstore()
+# Ladda vectorstore och embeddings om det inte redan finns i session_state
+if "vs" not in st.session_state:
+    st.session_state.vs = init_vectorstore()
+
+# Flagga som indikerar att appen är färdigladdad och redo att ta emot frågor
+if "ready" not in st.session_state:
+    st.session_state.ready = True  # eftersom vi just initierat den ovan
 
 # Initiera session_state med standardvärden om de saknas
-for key, default in [("last_query", ""), ("svar", "")]:
+for key, default in [("last_query", ""), ("svar", ""), ("query", ""), ("vald_fraga", "")]:
     if key not in st.session_state:
         st.session_state[key] = default
 
-# Funktion för att hantera fråga från användaren och hämtar svar från modellen
+# Funktion för att hantera användarens fråga och generera svar från modellen
 def svara():
-    # Läs och spara aktuell fråga från inputfältet
-    query = st.session_state.query.strip()
+    if not st.session_state.ready:
+        st.warning("Vänta ett ögonblick - data håller fortfarande på att laddas.")
+        return
+    # Använd det som skrivits i sökrutan
+    query = st.session_state.get("vald_fraga") or st.session_state.get("query", "")
+    query = query.strip()
     st.session_state.last_query = query
 
     # Om inget skrivits, töm svaret och avsluta
@@ -28,15 +37,26 @@ def svara():
         st.session_state.svar = ""
         return
 
+    # Hantera irrelevanta frågor direkt utan att skicka till modellen
+    irrelevanta = ["hur mår du", "vad gör du", "vad tycker du", "var bor du", "vem är du"]
+    if any(fr in query.lower() for fr in irrelevanta):
+        st.session_state.svar = (
+            "<b><span style='color:#127247;'>Fråga:</span></b><br>" + html.escape(query) + "<br><br>"
+            "<b><span style='color:#127247;'>Svar:</span></b><br>Jag kan bara svara på frågor som rör bostadsbidrag, sjukpenning och föräldrapenning."
+        )
+        st.session_state.vald_fraga = ""
+        st.session_state.query = ""
+        return
+
     try:
         # Anropa semantisk sökning och få svar
-        svar = semantic_search(query, vs)
+        svar = semantic_search(query, st.session_state.vs)
     except Exception as e:
         # Visa felmeddelande i appen om något går fel
         st.error(f"Något gick fel vid hämtning av svar: {e}")
         return
 
-    # Konvertera eventuella markdown-listor (* ) till HTML-listor för bättre visning
+   # Om svaret innehåller markdown-listor (* ), konvertera dem till HTML-listor för snyggare visning
     if "* " in svar:
         lines = svar.split("\n")
         inside_list = False
@@ -56,42 +76,52 @@ def svara():
             new_lines.append("</ul>")
         svar = "\n".join(new_lines)
 
-    # Gör frågetexten säker att visa i HTML och ersätt radbrytningar med <br>
+    # Konvertera användarens fråga och modellens svar till HTML-format för visning
     user_q = html.escape(query).replace('\n', '<br>').strip()
-
-    # Konvertera markdown-svaret till HTML
     bot_a_html = markdown.markdown(svar)
 
-    # Spara formaterat fråga-och-svar i session_state för visning i appen
     st.session_state.svar = (
         f"<b><span style='color:#127247;'>Fråga:</span></b><br>{user_q}<br><br>"
         f"<b><span style='color:#127247;'>Svar:</span></b><br>{bot_a_html}"
     )
 
-    # Rensa inputfältet efter att frågan skickats
+    # Rensa inputfält och återställ knappval
+    st.session_state.vald_fraga = ""
     st.session_state.query = ""
 
-# Anpassad CSS för bättre utseende och läsbarhet i appen
+# Anpassad CSS
 st.markdown("""
     <style>
     .block-container {
-        max-width: 1000px !important;
+        max-width: 800px !important;
         margin: 0 auto;
         padding-left: 1rem;
         padding-right: 1rem;
+    }
+    .info-box {
+        background: #e4f3ee;
+        border: 1.5px solid #b8ded0;
+        border-radius: 8px;
+        padding: 24px;
+        margin: 20px auto;
+        box-shadow: 0 8px 32px 0 rgba(34, 60, 80, 0.22);
+        text-align: center;
+        max-width: 100%;
+        font-size: 1.05rem;
     }
     .stTextInput input {
         background-color: #e4f3ee !important;
         border: 2px solid #b8ded0 !important;
         border-radius: 8px !important;
         padding: .9rem 1.2rem !important;
-        font-size: 1.14rem !important;
+        font-size: 0.95rem !important;
         transition: border 0.18s;
+
     }
     .stTextInput input::placeholder {
         color: #127247 !important;
         opacity: 0.8 !important;
-        font-style: italic;
+        # font-style: italic;
     }
     .answer-box {
         background: #e4f3ee;
@@ -104,7 +134,7 @@ st.markdown("""
         box-sizing: border-box;
         font-size: 1.02rem;
     }
-    .box-shadowed {
+   .box-shadowed {
         background-image: linear-gradient(to bottom, #c7dfd8, #e4f3ee) !important;
         border: 1.5px solid #b8ded0 !important;
         border-radius: 12px !important;
@@ -119,8 +149,29 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Visar tipsruta endast på mobil
+st.markdown("""
+<style>
+.mobile-info {
+    display: none;
+}
+@media (max-width: 768px) {
+    .mobile-info {
+        display: block;
+        font-size: 0.95rem;
+        color: #127247;
+        margin-top: 0.5rem;
+        text-align: center;
+    }
+}
+</style>
+<div class="mobile-info">
+    <strong>💡 Klicka på > längst upp till vänster för mer info</strong>
+</div>
+""", unsafe_allow_html=True)
 
-# Sidopanel med information om projektet, syfte och annan viktig info
+
+# Sidopanel med projektinfo
 with st.sidebar:
     st.markdown("""
         <div class="sidebar-section">
@@ -136,7 +187,7 @@ with st.sidebar:
             <ul style="margin-top: 0; margin-bottom: 0;">
                 <li>Göra det enklare för användare att navigera och förstå information</li>
                 <li>Ge tydliga, kortfattade och vägledande svar</li>
-                <li>Öka tillgängligheten till faktabaserad information utan att ersätta personlig rådgivning</li>
+                <li>Öka tillgängligheten till faktabaserad information utan att ersätta personlig rådgivning</li><br>
             </ul>
         </div>
         <hr style="margin: 1.3em 0 1em 0; border: none; border-top: 1.5px solid #b8ded0;" />
@@ -149,83 +200,52 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
 
-# Huvudlayout
-st.markdown("<div style='margin-top:18px; margin-bottom:18px;'>", unsafe_allow_html=True)
-col1, col2 = st.columns(2)
+# Inforuta
+st.markdown("""
+<div class="info-box">
+  <h2 style='color:#127247;'>Fråga Viola</h2>
+  <p>
+    Har du frågor om <b>sjukpenning</b>, <b>bostadsbidrag</b> eller <b>föräldrapenning</b>?<br>
+    Jag hjälper dig att snabbt få vägledande svar baserat på information från Försäkringskassan.
+  </p>
 
-# Info-ruta: Fråga Viola
-with col1:
-    st.markdown("""
-        <div class="box-shadowed" style="
-            height: 330px;
-            padding: 20px 15px 14px 18px;
-            font-size: 1.02em;
-            min-height: 120px;
-        ">
-            <span style="color:#127247; font-weight:500; font-size:1.5em;">🤖 <b>Fråga Viola</span></b>
-            <div style="height:0.5em;"></div>
-            Viola svarar på frågor om <b>sjukpenning</b>, <b>bostadsbidrag</b><br> och
-            <b>föräldrapenning</b> baserat på information från Försäkringskassans webbplats.
-            <br><br>
-            <b>Ställ en fråga i rutan nedan</b> - <br>
-            Till exempel: <i>Hur länge kan jag få sjukpenning?</i><br><br>
-            För fullständig information:
-            <a href="https://www.forsakringskassan.se" target="_blank" style="color:#127247;">
-                forsakringskassan.se
-            </a><br>
-            För personliga ärenden ring: <b>0771-524 524</b>
-        </div>
-    """, unsafe_allow_html=True)
+  <hr style="margin:1rem 0; border-color:#b8ded0;" />
 
-# Tips på frågor
-with col2:
-    st.markdown("""
-        <div class="box-shadowed" style="
-            height: 330px;
-            padding: 16px 12px 12px 14px;
-            font-size: 1.02em;
-            min-height: 120px;
-        ">
-            <span style="color:#127247; font-weight:500; font-size:1.5em;">💡 <b>Tips på frågor</b></span>
-            <div style="height:0.5em;"></div>
-            <ul style="margin-top:0; margin-bottom:0; padding-left:20px;">
-                <li>Hur mycket får man i sjukpenning?</li>
-                <li>Kan man få sjukpenning som egenföretagare?</li>
-                <li>Hur många dagar har jag rätt till med föräldrapenning?</li>
-                <li>Kan båda föräldrarna ta ut föräldrapenning samtidigt?</li>
-                <li>Får jag föräldrapenning om jag är arbetslös?</li>
-                <li>Hur räknas inkomsten för bostadsbidrag?</li>
-                <li>Kan jag få bostadsbidrag som student?</li>
-                <li>Hur söker jag bostadsbidrag?</li>
-            </ul>
-        </div>
-    """, unsafe_allow_html=True)
+  <p style="font-size:0.9rem; color:#555;">
+    För mer information besök
+    <a href="https://www.forsakringskassan.se" target="_blank" style="color:#127247;">
+        forsakringskassan.se
+    </a> eller kontakta kundcenter på <b>0771-524 524</b>
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
-
-# Textfält där användaren skriver sin fråga och skickar den genom att trycka Enter
+# Sökfält
 st.text_input(
-    "",
-    placeholder="Ställ din fråga här...",
+    label="Frågeruta (dold)",
+    placeholder="Skriv din fråga här...",
     key="query",
-    on_change=svara
+    on_change=svara,
+    label_visibility="collapsed"
 )
 
-
-# Visa svar och eventuell relevant länkif st.session_state.
+# Svarsruta – visar resultat från modellen och lägger till en relevant länk baserat på frågans innehåll
 if st.session_state.svar:
     svar_text = st.session_state.svar.lower()
-
-    # Kontrollera om svaret är ett standardmeddelande som inte kräver länk
     is_unknown = (
         "det vet jag inte" in svar_text
-        or "jag kan bara svara på frågor som rör bostadsbidrag, sjukpenning och föräldrapenning" in svar_text
+        or "jag kan bara svara på frågor som rör" in svar_text
         or "det framgår inte" in svar_text
         or "jag heter viola" in svar_text
     )
 
+    # Om svaret är relevant, visa relaterad informationslänk
+
     if not is_unknown:
-        # Visa passande länk baserat på fråga
+        # Ta reda på vilket område frågan gäller genom att analysera användarens fråga
         query = st.session_state.last_query.lower()
+
+        # Matcha frågan mot specifika nyckelord för att skapa rätt länk
         if "bostadsbidrag" in query:
             länk = '<a href="https://www.forsakringskassan.se/privatperson/arbetssokande/bostadsbidrag" target="_blank" style="color:#127247;">Läs mer om bostadsbidrag</a>'
         elif "sjukpenning" in query:
@@ -233,28 +253,26 @@ if st.session_state.svar:
         elif "föräldrapenning" in query:
             länk = '<a href="https://www.forsakringskassan.se/privatperson/foralder/foraldrapenning" target="_blank" style="color:#127247;">Läs mer om föräldrapenning</a>'
         else:
+             # Standardlänk om frågan inte matchar något specifikt område
             länk = '<a href="https://www.forsakringskassan.se" target="_blank" style="color:#127247;">Besök Försäkringskassan för mer information</a>'
 
-        # Visa svar och länk
+
+        # Visa svaret tillsammans med den relaterade länken och ett råd att kontakta Försäkringskassan
         st.markdown(
             f"""
             <div class="answer-box">
                 {st.session_state.svar}
-                <div style="margin-top: 18px;">
-                    {länk}
-                </div><br>
-                🔍 Kontakta Försäkringskassan om du är osäker på vad som gäller för dig
+                <div style="margin-top: 18px;">{länk}</div>
+                <br><b>Kontakta Försäkringskassan vid frågor eller oklarheter.</b>
             </div>
             """,
             unsafe_allow_html=True
         )
     else:
-        # Visa bara svaret utan länk eller extra text
-        st.markdown(
-            f"""
+        # Om svaret är ett standardsvar, visa bara svaret utan länk
+
+        st.markdown(f"""
             <div class="answer-box">
                 {st.session_state.svar}
             </div>
-            """,
-            unsafe_allow_html=True
-        )
+        """, unsafe_allow_html=True)
