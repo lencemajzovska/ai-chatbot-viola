@@ -1,6 +1,5 @@
 import os
 import re
-import time
 import numpy as np
 import polars as pl
 import unicodedata
@@ -15,10 +14,10 @@ K_TOP = 20
 EMBEDDING_MODEL = "text-embedding-004"
 GENERATION_MODEL = "gemini-2.0-flash"
 
-# Initiera Gemini-klient
+# Initierar Gemini-klienten via API-nyckel
 client = genai.Client(api_key=os.getenv("API_KEY"))
 
-# Textbearbetning
+# Läser och förbehandlar PDF-data
 def read_pdfs_from_folder(folder_path: str) -> str:
     all_text = ""
     for filename in os.listdir(folder_path):
@@ -29,9 +28,13 @@ def read_pdfs_from_folder(folder_path: str) -> str:
                 all_text += page.extract_text() or ""
     return all_text
 
+# Städar text: normaliserar tecken, tar bort PDF-metadata
 def clean_text(text: str) -> str:
-    return unicodedata.normalize("NFKC", re.sub(r'\s+', ' ', text))
+    text = unicodedata.normalize("NFKC", re.sub(r'\s+', ' ', text))
+    text = re.sub(r'\s*Pdf,\s*\d+\s*kB\.?\s*', '', text, flags=re.IGNORECASE)
+    return text
 
+# Delar upp texten i mindre chunks för embeddings
 def chunk_text(text: str) -> list[str]:
     sentences = text.split(". ")
     chunks = []
@@ -48,7 +51,7 @@ def chunk_text(text: str) -> list[str]:
         chunks.append(current_chunk.strip())
     return chunks
 
-# Embeddings
+# Skapar embedding
 def create_embedding(text: str, model=EMBEDDING_MODEL, task_type="RETRIEVAL_DOCUMENT") -> list[float]:
     response = client.models.embed_content(
         model=model,
@@ -59,7 +62,7 @@ def create_embedding(text: str, model=EMBEDDING_MODEL, task_type="RETRIEVAL_DOCU
     v = np.array(emb)
     return (v / np.linalg.norm(v)).tolist()
 
-
+# Bygger embeddings om de inte redan finns sparade
 def load_or_build_embeddings(chunks: list[str]) -> tuple[list[str], list[list[float]]]:
     if not REBUILD and os.path.exists("embeddings.parquet"):
         print("Laddar cachade embeddings från fil...")
@@ -68,18 +71,15 @@ def load_or_build_embeddings(chunks: list[str]) -> tuple[list[str], list[list[fl
 
     print("Genererar nya embeddings...")
     embeddings = [create_embedding(chunk) for chunk in chunks if chunk.strip()]
-
-    # Filter out empty embeddings (from failed API calls)
     valid_chunks = [chunk for chunk, emb in zip(chunks, embeddings) if emb]
     valid_embeddings = [emb for emb in embeddings if emb]
 
-    # Save only valid embeddings
     df = pl.DataFrame({"texts": valid_chunks, "vectors": valid_embeddings})
     df.write_parquet("embeddings.parquet")
 
     return valid_chunks, valid_embeddings
 
-# VectorStore-klass
+# Klass för vektorlagring och semantisk sökning
 class VectorStore:
     def __init__(self, texts=None, vectors=None):
         self.texts = texts if texts is not None else []
@@ -98,7 +98,7 @@ class VectorStore:
         k = min(k, len(self.texts))
         return [self.texts[i] for i, _ in similarities[:k]]
 
-# Initiera VectorStore från PDF-mapp
+# Skapar och laddar VectorStore från PDF-dokument
 def init_vectorstore(folder_path="data_pdf") -> VectorStore:
     raw_text = read_pdfs_from_folder(folder_path)
     clean = clean_text(raw_text)
@@ -132,7 +132,6 @@ Om någon frågar vad de själva heter, svara: "Det vet jag inte."
 Hitta inte på egna fakta.
 """
 
-
 # Frågefunktion för semantisk sökning och svarsgenerering
 def run_semantic_search(question: str, vs: VectorStore) -> str:
     q_emb = create_embedding(question)
@@ -156,7 +155,6 @@ def run_semantic_search(question: str, vs: VectorStore) -> str:
     except Exception as e:
         return f"Fel vid generering av svar: {e}"
 
-
 # Exporterar till Streamlit-app
 __all__ = [
     "init_vectorstore",
@@ -165,3 +163,8 @@ __all__ = [
     "system_prompt",
     "GENERATION_MODEL"
 ]
+
+# Om du vill köra direkt i terminal
+if __name__ == "__main__":
+    vs = init_vectorstore()
+    print("Embeddings ombyggda.")
