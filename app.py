@@ -9,18 +9,26 @@ from chatbot import (
 # Grundinställningar
 st.set_page_config(page_title="Fråga Viola", layout="centered")
 
-# Laddar vectorstore och embeddings vid start
-if "vs" not in st.session_state:
-    st.session_state.vs = init_vectorstore()
+# Cacha vectorstore så den inte laddas om varje gång
+@st.cache_resource
+def init_vectorstore_cached():
+    return init_vectorstore()
 
-# Appen är redo att ta emot frågor
-if "ready" not in st.session_state:
+# Initiera session_state med defaultvärden en gång per ny session
+if "initialized" not in st.session_state:
+    st.session_state.initialized = True
+    st.session_state.vs = None
+    st.session_state.ready = False
+    st.session_state.last_query = ""
+    st.session_state.svar = ""
+    st.session_state.query = ""
+    st.session_state.vald_fraga = ""
+
+# Ladda vectorstore om den inte redan är laddad
+if st.session_state.vs is None:
+    with st.spinner("Laddar kunskapsdatabasen..."):
+        st.session_state.vs = init_vectorstore_cached()
     st.session_state.ready = True
-
-# Initiera session_state med standardvärden
-for key, default in [("last_query", ""), ("svar", ""), ("query", ""), ("vald_fraga", "")]:
-    if key not in st.session_state:
-        st.session_state[key] = default
 
 # Genererar svar på frågan
 def svara():
@@ -95,7 +103,7 @@ st.markdown("""
         padding-right: 1rem;
     }
     .info-box {
-        background: #e4f3ee;
+        background-image: linear-gradient(to bottom, #c7dfd8, #e4f3ee) !important;
         border: 1.5px solid #b8ded0;
         border-radius: 8px;
         padding: 24px;
@@ -106,21 +114,19 @@ st.markdown("""
         font-size: 1.05rem;
     }
     .stTextInput input {
-        background-color: #e4f3ee !important;
-        border: 2px solid #b8ded0 !important;
+        background: #e8f0ee;
+        border: 1.5px solid #b8ded0 !important;
         border-radius: 8px !important;
         padding: .9rem 1.2rem !important;
-        font-size: 0.95rem !important;
-        transition: border 0.18s;
-
+        font-size: 1rem !important;
+        # transition: border 0.18s;
     }
     .stTextInput input::placeholder {
         color: #127247 !important;
-        opacity: 0.8 !important;
-        # font-style: italic;
+        opacity: 1 !important;
     }
     .answer-box {
-        background: #e4f3ee;
+        background-image: linear-gradient(to bottom, #c7dfd8, #e4f3ee) !important;
         border: 1.5px solid #b4e2cb;
         border-radius: 12px;
         padding: 20px;
@@ -130,14 +136,10 @@ st.markdown("""
         box-sizing: border-box;
         font-size: 1.02rem;
     }
-   .box-shadowed {
-        background-image: linear-gradient(to bottom, #c7dfd8, #e4f3ee) !important;
-        border: 1.5px solid #b8ded0 !important;
-        border-radius: 12px !important;
-        box-shadow: 0 8px 32px 0 rgba(34, 60, 80, 0.22) !important;
-    }
     [data-testid="stSidebar"] {
         background-image: linear-gradient(to bottom, #c7dfd8, #e4f3ee) !important;
+        box-shadow: 0 8px 32px 0 rgba(34, 60, 80, 0.22);
+
     }
     [data-testid="stAppViewContainer"] {
         background: #e8f0ee;
