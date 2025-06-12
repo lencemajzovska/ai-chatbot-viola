@@ -1,20 +1,17 @@
 import streamlit as st
 import markdown
 import html
-from chatbot import (
-    init_vectorstore,
-    run_semantic_search as semantic_search
-)
+from chatbot import init_vectorstore, run_semantic_search as semantic_search
 
 # Grundinställningar
 st.set_page_config(page_title="Fråga Viola", layout="centered")
 
-# Cacha vectorstore så den inte laddas om varje gång
+# Cache: ladda vectorstore en gång per session
 @st.cache_resource
 def init_vectorstore_cached():
     return init_vectorstore()
 
-# Initiera session_state med defaultvärden en gång per ny session
+# Initiera session_state
 if "initialized" not in st.session_state:
     st.session_state.initialized = True
     st.session_state.vs = None
@@ -22,78 +19,86 @@ if "initialized" not in st.session_state:
     st.session_state.last_query = ""
     st.session_state.svar = ""
     st.session_state.query = ""
-    st.session_state.vald_fraga = ""
 
-# Ladda vectorstore om den inte redan är laddad
+# Ladda vectorstore vid behov
 if st.session_state.vs is None:
     with st.spinner("Laddar kunskapsdatabasen..."):
         st.session_state.vs = init_vectorstore_cached()
     st.session_state.ready = True
 
-# Genererar svar på frågan
-def svara():
-    if not st.session_state.ready:
-        st.warning("Vänta ett ögonblick - data håller fortfarande på att laddas.")
-        return
-
-    query = st.session_state.get("vald_fraga") or st.session_state.get("query", "")
-    query = query.strip()
-    st.session_state.last_query = query
-
-    # Om inget skrivits, töm svaret och avsluta
-    if not query:
-        st.session_state.svar = ""
-        return
-
-    # Filtrerar bort irrelevanta frågor utan att fråga modellen
-    irrelevanta = ["hur mår du", "vad gör du", "vad tycker du", "var bor du", "vem är du"]
-    if any(fr in query.lower() for fr in irrelevanta):
-        st.session_state.svar = (
-            "<b><span style='color:#127247;'>Fråga:</span></b><br>" + html.escape(query) + "<br><br>"
-            "<b><span style='color:#127247;'>Svar:</span></b><br>Jag kan bara svara på frågor som rör bostadsbidrag, sjukpenning och föräldrapenning."
-        )
-        st.session_state.vald_fraga = ""
-        st.session_state.query = ""
-        return
-
-    try:
-        svar = semantic_search(query, st.session_state.vs)
-    except Exception as e:
-        st.error(f"Något gick fel vid hämtning av svar: {e}")
-        return
-
-   # Konverterar eventuella markdown-listor till HTML-listor
-    if "* " in svar:
-        lines = svar.split("\n")
-        inside_list = False
-        new_lines = []
-        for line in lines:
-            if line.strip().startswith("* "):
-                if not inside_list:
-                    new_lines.append("<ul>")
-                    inside_list = True
-                new_lines.append(f"<li>{line.strip()[2:].strip()}</li>")
-            else:
-                if inside_list:
-                    new_lines.append("</ul>")
-                    inside_list = False
-                new_lines.append(line)
-        if inside_list:
-            new_lines.append("</ul>")
-        svar = "\n".join(new_lines)
-
+# Formatera fråga och svar som HTML
+def format_svar(query, svar):
     user_q = html.escape(query).replace('\n', '<br>').strip()
     bot_a_html = markdown.markdown(svar)
-
-    st.session_state.svar = (
+    return (
         f"<b><span style='color:#127247;'>Fråga:</span></b><br>{user_q}<br><br>"
         f"<b><span style='color:#127247;'>Svar:</span></b><br>{bot_a_html}"
     )
 
-    st.session_state.vald_fraga = ""
+# Konvertera markdown-listor till HTML-listor
+def convert_markdown_lists(text):
+    if "* " not in text:
+        return text
+    lines = text.split("\n")
+    inside_list, new_lines = False, []
+    for line in lines:
+        if line.strip().startswith("* "):
+            if not inside_list:
+                new_lines.append("<ul>")
+                inside_list = True
+            new_lines.append(f"<li>{line.strip()[2:].strip()}</li>")
+        else:
+            if inside_list:
+                new_lines.append("</ul>")
+                inside_list = False
+            new_lines.append(line)
+    if inside_list:
+        new_lines.append("</ul>")
+    return "\n".join(new_lines)
+
+# Generera svar
+def svara():
+    if not st.session_state.ready:
+        st.warning("Vänta ett ögonblick - data laddas.")
+        return
+
+    query = st.session_state.query.strip()
+    st.session_state.last_query = query
+
+    if not query:
+        st.session_state.svar = ""
+        st.session_state.query = ""
+        return
+
+    # Hälsningar
+    greetings = {
+        ("hej", "hej!", "hallå", "hejsan"): "Hej! Vad kan jag hjälpa dig med?",
+        ("hejdå", "hej då", "vi ses", "adjö"): "Hejdå! Du är alltid välkommen tillbaka."
+    }
+    for keys, response in greetings.items():
+        if query.lower() in keys:
+            st.session_state.svar = format_svar(query, response)
+            st.session_state.query = ""
+            return
+
+    # Filtrera irrelevanta frågor
+    irrelevanta = ["hur mår du", "vad gör du", "vad tycker du", "var bor du", "vem är du"]
+    if any(fr in query.lower() for fr in irrelevanta):
+        st.session_state.svar = format_svar(query, "Jag kan bara svara på frågor som rör bostadsbidrag, sjukpenning och föräldrapenning.")
+        st.session_state.query = ""
+        return
+
+    # Semantic search
+    try:
+        svar = semantic_search(query, st.session_state.vs)
+        svar = convert_markdown_lists(svar)
+        st.session_state.svar = format_svar(query, svar)
+    except Exception as e:
+        st.error(f"Något gick fel vid hämtning av svar: {e}")
+
     st.session_state.query = ""
 
-# Anpassad CSS
+# CSS och design
 st.markdown("""
     <style>
     .block-container {
@@ -139,33 +144,25 @@ st.markdown("""
     [data-testid="stSidebar"] {
         background-image: linear-gradient(to bottom, #c7dfd8, #e4f3ee) !important;
         box-shadow: 0 8px 32px 0 rgba(34, 60, 80, 0.22);
-
     }
     [data-testid="stAppViewContainer"] {
         background: #e8f0ee;
     }
-    </style>
-""", unsafe_allow_html=True)
-
-# Visar tipsruta endast på mobil
-st.markdown("""
-<style>
-.mobile-info {
-    display: none;
-}
-@media (max-width: 768px) {
     .mobile-info {
-        display: block;
-        font-size: 0.95rem;
-        color: #127247;
-        margin-top: 0.5rem;
-        text-align: center;
+    display: none;
     }
-}
-</style>
-<div class="mobile-info">
-    <strong>💡 Klicka på > längst upp till vänster för mer info</strong>
-</div>
+    @media (max-width: 768px) {
+        .mobile-info {
+            display: block;
+            font-size: 0.95rem;
+            color: #127247;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+    </style>
+    <div class="mobile-info">
+        <strong>💡 Klicka på > längst upp till vänster för mer info</strong>
+    </div>
 """, unsafe_allow_html=True)
 
 # Sidopanel med projektinfo
@@ -196,7 +193,7 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
 
-# Inforuta
+# Inforuta på startsidan
 st.markdown("""
 <div class="info-box">
   <h2 style='color:#127247;'>Fråga Viola</h2>
@@ -211,12 +208,12 @@ st.markdown("""
     För mer information besök
     <a href="https://www.forsakringskassan.se" target="_blank" style="color:#127247;">
         forsakringskassan.se
-    </a> eller kontakta kundcenter på <b>0771-524 524</b>
-    </p>
+    </a> eller kontakta kundcenter på <b>0771-524 524</b>.
+  </p>
 </div>
 """, unsafe_allow_html=True)
 
-# Sökfält
+# Inputfält
 st.text_input(
     label="Frågeruta (dold)",
     placeholder="Skriv din fråga här...",
@@ -225,7 +222,7 @@ st.text_input(
     label_visibility="collapsed"
 )
 
-# Visar svaret från modellen
+# Visa svar
 if st.session_state.svar:
     svar_text = st.session_state.svar.lower()
     is_unknown = (
@@ -233,13 +230,12 @@ if st.session_state.svar:
         or "jag kan bara svara på frågor som rör" in svar_text
         or "det framgår inte" in svar_text
         or "jag heter viola" in svar_text
+        or "vad kan jag hjälpa dig med" in svar_text
+        or "du är alltid välkommen tillbaka" in svar_text
     )
 
-    # Om svaret är relevant, visa relaterad informationslänk
     if not is_unknown:
         query = st.session_state.last_query.lower()
-
-        # Matcha frågan mot specifika nyckelord för att skapa rätt länk
         if "bostadsbidrag" in query:
             länk = '<a href="https://www.forsakringskassan.se/privatperson/arbetssokande/bostadsbidrag" target="_blank" style="color:#127247;">Läs mer om bostadsbidrag</a>'
         elif "sjukpenning" in query:

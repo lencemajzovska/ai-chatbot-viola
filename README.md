@@ -1,8 +1,8 @@
-# AI-chattbot för Försäkringskassan – Streamlit-app med RAG och Google Gemini
+# Fråga Viola – AI-chattbot för Försäkringskassan
 
 AI-chattbot som svarar på frågor om ersättningar från Försäkringskassan, baserat på **Retrieval-Augmented Generation (RAG)** och **Google Gemini**.
 
-Chattboten är tillgänglig via ett interaktivt webbgränssnitt byggt i **Streamlit**.
+Webbgränssnittet är byggt med **Streamlit**.
 
 ---
 
@@ -17,8 +17,7 @@ Chattboten är tillgänglig via ett interaktivt webbgränssnitt byggt i **Stream
 - Använder förtränad Gemini-modell via Google AI Studio
 - Söker semantiskt i en faktabas baserad på PDF-dokument från Försäkringskassan
 - Ger faktabaserade och kontextstyrda svar
-- Etisk systemprompt begränsar hallucinationer
-- Automatisk validering av svar i notebook (`chatbot.ipynb`)
+- Systemprompt begränsar hallucinationer
 
 ---
 
@@ -27,7 +26,7 @@ Chattboten är tillgänglig via ett interaktivt webbgränssnitt byggt i **Stream
 - Ställ en fråga direkt i webbläsaren
 - AI svarar endast utifrån källtext från Försäkringskassan
 - Länk till källa eller kontaktinformation visas vid osäkerhet
-- Klar och tydlig stil med användarfokus
+- Tydlig, enkel och användarfokuserad design
 
 ---
 
@@ -35,8 +34,8 @@ Chattboten är tillgänglig via ett interaktivt webbgränssnitt byggt i **Stream
 
 Notebooken `chatbot.ipynb` innehåller:
 
-- 8 testfrågor med godkända svar
-- Automatisk poängsättning
+- Testfrågor och svar
+- Automatisk poängsättning av svarens kvalitet
 - Reflektion och förbättringsförslag
 
 ---
@@ -47,3 +46,7 @@ Notebooken `chatbot.ipynb` innehåller:
 Den ersätter **inte** Försäkringskassans rådgivning eller beslut.
 Vid osäkerhet kontakta alltid Försäkringskassan.
 
+## Utvecklare
+
+Lence Majzovska
+Data Science Student, EC Utbildning 2025

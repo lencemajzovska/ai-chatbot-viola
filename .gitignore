@@ -34,3 +34,6 @@ vs.pkl
 # Loggar och tillfälliga filer (om du använder)
 *.log
 *.html
+
+# Teorifil
+teorifrågor_självutvärdering.pdf
