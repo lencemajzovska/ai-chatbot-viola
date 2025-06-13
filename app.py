@@ -18,8 +18,6 @@ default_state = {
     "ready": False,
     "last_query": "",
     "svar": "",
-    "query": "",
-    "clear_query": False
 }
 for key, value in default_state.items():
     if key not in st.session_state:
@@ -69,11 +67,7 @@ def convert_markdown_lists(text):
     return "\n".join(new_lines)
 
 # Generera svar
-def svara():
-    if not st.session_state.ready or st.session_state.vs is None:
-        st.warning("Vänta ett ögonblick - kunskapsdatabasen laddas fortfarande.")
-        return
-
+def svara_och_nollställ():
     query = st.session_state.query.strip()
     st.session_state.last_query = query
     st.session_state.svar = ""
@@ -102,17 +96,15 @@ def svara():
         st.session_state.query = ""
         return
 
-    # Kör semantic search bara om vi inte redan har ett svar
-    if st.session_state.svar == "":
-        try:
-            svar = semantic_search(query, st.session_state.vs)
-            svar = convert_markdown_lists(svar)
-            st.session_state.svar = format_svar(query, svar)
-        except Exception as e:
-            st.error(f"Något gick fel vid hämtning av svar: {e}")
+    # Semantic search
+    try:
+        svar = semantic_search(query, st.session_state.vs)
+        svar = convert_markdown_lists(svar)
+        st.session_state.svar = format_svar(query, svar)
+    except Exception as e:
+        st.error(f"Något gick fel vid hämtning av svar: {e}")
 
-    # Töm query i slutet
-    st.session_state.query = ""
+    st.session_state.query = ""  # Rensar fältet efter varje fråga
 
 
 # CSS och design
@@ -229,17 +221,14 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Inputfält
-if st.session_state.ready and st.session_state.vs is not None:
-    st.text_input(
-        label="Frågeruta (dold)",
-        placeholder="Skriv din fråga här...",
-        key="query",
-        label_visibility="collapsed",
-        on_change=svara
-    )
-else:
-    st.info("Databasen laddas fortfarande... vänta ett ögonblick.")
+# Inputfält med on_change som kör svara direkt
+st.text_input(
+    label="Frågeruta (dold)",
+    placeholder="Skriv din fråga här...",
+    key="query",
+    label_visibility="collapsed",
+    on_change=svara_och_nollställ
+)
 
 # Visa svar
 if st.session_state.svar:
