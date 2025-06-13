@@ -41,7 +41,7 @@ The notebook `chatbot.ipynb` includes:
 
 ## Disclaimer
 
-**Important:** This chatbot is for informational purposes only.
+This chatbot is for informational purposes only.
 It does **not** replace official advice or decisions from Försäkringskassan.
 For official guidance, always contact Försäkringskassan directly.
 
