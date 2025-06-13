@@ -81,7 +81,7 @@ def svara():
     # Hälsningar
     greetings = {
         ("hej", "hej!", "hallå", "hejsan", "hej på dig"): "Hej! Vad kan jag hjälpa dig med?",
-        ("hejdå", "hej då", "vi ses", "adjö"): "Ha en fin dag och välkommen tillbaka!"
+        ("hejdå", "hej då", "vi ses", "adjö"): "Ha en fin dag och välkommen åter!"
     }
     for keys, response in greetings.items():
         if query.lower() in keys:
@@ -91,8 +91,8 @@ def svara():
 
     # Filtrera irrelevanta frågor
     irrelevanta = [
-        "hur mår du", "vad gör du", "vad tycker du", "var bor du", "vem är du",
-        "vab", "vård av barn", "tillfällig föräldrapenning"
+        "hur mår du", "vad gör du", "vad tycker du",
+        "var bor du", "vem är du", "vad sysslar du med",
     ]
     if any(fr in query.lower() for fr in irrelevanta):
         st.session_state.svar = format_svar(
@@ -250,7 +250,7 @@ if st.session_state.svar:
         or "det framgår inte" in svar_text
         or "jag heter viola" in svar_text
         or "vad kan jag hjälpa dig med" in svar_text
-        or "välkommen tillbaka" in svar_text
+        or "välkommen åter" in svar_text
     )
 
     if not is_unknown:
