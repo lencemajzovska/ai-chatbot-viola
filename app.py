@@ -13,29 +13,20 @@ def init_vectorstore_cached():
 
 # Initiera session_state
 default_state = {
-    "initialized": True,
     "vs": None,
     "ready": False,
     "last_query": "",
     "svar": "",
-    "query": ""
+    "input_text": ""
 }
-for key, value in default_state.items():
-    if key not in st.session_state:
-        st.session_state[key] = value
+for key in default_state:
+    st.session_state.setdefault(key, default_state[key])
 
 # Ladda vectorstore vid behov
-if st.session_state.vs is None:
+if not st.session_state.ready or st.session_state.vs is None:
     with st.spinner("Laddar kunskapsdatabasen..."):
         st.session_state.vs = init_vectorstore_cached()
     st.session_state.ready = True
-
-# Laddningskontroll
-if not st.session_state.ready or st.session_state.vs is None:
-    st.title("Fråga Viola")
-    st.subheader("Laddar kunskapsdatabasen...")
-    st.info("Appen startar strax, vänligen vänta ⏳")
-    st.stop()
 
 # Formatera fråga och svar som HTML
 def format_svar(query, svar):
@@ -68,36 +59,34 @@ def convert_markdown_lists(text):
     return "\n".join(new_lines)
 
 # Generera svar
-def svara():
+def svara(query):
     if not st.session_state.ready or st.session_state.vs is None:
-        st.warning("Vänta ett ögonblick - kunskapsdatabasen laddas fortfarande.")
+        st.warning("Kunskapsdatabasen är inte laddad än.")
         return
 
-    query = st.session_state.query.strip()
-    st.session_state.last_query = query
+    query = query.strip()
 
     if not query:
         st.session_state.svar = ""
-        # st.session_state.query = ""
         return
 
     # Hälsningar
     greetings = {
-        ("hej", "hej!", "hallå", "hejsan"): "Hej! Vad kan jag hjälpa dig med?",
+        ("hej", "hej!", "hallå", "hejsan", "hej på dig"): "Hej! Vad kan jag hjälpa dig med?",
         ("hejdå", "hej då", "vi ses", "adjö"): "Du är alltid välkommen tillbaka."
-
     }
     for keys, response in greetings.items():
-        if query.lower() in keys:
+        if query in keys:
             st.session_state.svar = format_svar(query, response)
-            st.session_state.query = ""
             return
 
     # Filtrera irrelevanta frågor
     irrelevanta = ["hur mår du", "vad gör du", "vad tycker du", "var bor du", "vem är du"]
     if any(fr in query.lower() for fr in irrelevanta):
-        st.session_state.svar = format_svar(query, "Jag kan bara svara på frågor som rör bostadsbidrag, sjukpenning och föräldrapenning.")
-        st.session_state.query = ""
+        st.session_state.svar = format_svar(
+            query,
+            "Jag kan bara svara på frågor som rör bostadsbidrag, sjukpenning och föräldrapenning."
+        )
         return
 
     # Semantic search
@@ -106,9 +95,8 @@ def svara():
         svar = convert_markdown_lists(svar)
         st.session_state.svar = format_svar(query, svar)
     except Exception as e:
-        st.error(f"Något gick fel vid hämtning av svar: {e}")
-
-    st.session_state.query = ""
+        st.error("Något gick fel vid hämtning av svar.")
+        return
 
 # CSS och design
 st.markdown("""
@@ -225,16 +213,20 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Inputfält
-if st.session_state.ready and st.session_state.vs is not None:
-    st.text_input(
-        label="Frågeruta (dold)",
-        placeholder="Skriv din fråga här...",
-        key="query",
-        on_change=svara,
-        label_visibility="collapsed"
-    )
-else:
-    st.info("Databasen laddas fortfarande... vänta ett ögonblick.")
+def handle_query():
+    query = st.session_state.input_text.strip()
+    if query and query != st.session_state.last_query:
+        st.session_state.last_query = query
+        svara(query)
+        st.session_state.input_text = ""
+
+st.text_input(
+    label="Frågeruta (dold)",
+    placeholder="Skriv din fråga här...",
+    key="input_text",
+    label_visibility="collapsed",
+    on_change=handle_query
+)
 
 # Visa svar
 if st.session_state.svar:
@@ -250,14 +242,20 @@ if st.session_state.svar:
 
     if not is_unknown:
         query = st.session_state.last_query.lower()
-        if "bostadsbidrag" in query:
-            länk = '<a href="https://www.forsakringskassan.se/privatperson/arbetssokande/bostadsbidrag" target="_blank" style="color:#127247;">Läs mer om bostadsbidrag</a>'
-        elif "sjukpenning" in query:
-            länk = '<a href="https://www.forsakringskassan.se/privatpers/sjuk" target="_blank" style="color:#127247;">Läs mer om sjukpenning</a>'
-        elif "föräldrapenning" in query:
-            länk = '<a href="https://www.forsakringskassan.se/privatperson/foralder/foraldrapenning" target="_blank" style="color:#127247;">Läs mer om föräldrapenning</a>'
-        else:
-            länk = 'För mer information besök <a href="https://www.forsakringskassan.se" target="_blank" style="color:#127247;">forsakringskassan.se</a>'
+
+        länk_dict = {
+            "bostadsbidrag": "https://www.forsakringskassan.se/privatperson/arbetssokande/bostadsbidrag",
+            "sjukpenning": "https://www.forsakringskassan.se/privatpers/sjuk",
+            "föräldrapenning": "https://www.forsakringskassan.se/privatperson/foralder/foraldrapenning"
+        }
+
+        länk = next(
+            (
+                f'<a href="{url}" target="_blank" style="color:#127247;">Läs mer om {key}</a>'
+                for key, url in länk_dict.items() if key in query
+            ),
+            'För mer information besök <a href="https://www.forsakringskassan.se" target="_blank" style="color:#127247;">forsakringskassan.se</a>'
+        )
 
         st.markdown(
             f"""
