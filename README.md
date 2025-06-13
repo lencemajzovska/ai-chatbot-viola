@@ -33,9 +33,9 @@ The solution is built using **Retrieval-Augmented Generation (RAG)** and **Googl
 
 The notebook `chatbot.ipynb` includes:
 
-- Test questions and answers
-- Automated scoring of answer quality
-- Reflection and improvement suggestions
+- Model evaluation with test questions and answers
+- Automated scoring of response quality
+- Reflections and possible improvements for further development
 
 ---
 
@@ -47,5 +47,5 @@ For official guidance, always contact Försäkringskassan directly.
 
 ## Developer
 
-Lence Majzovska
+Lence Majzovska  
 Data Science Student, EC Utbildning 2025
