@@ -76,14 +76,12 @@ def svara():
 
     query = st.session_state.query.strip()
     st.session_state.last_query = query
-
     st.session_state.svar = ""
 
     # Hälsningar
     greetings = {
-        ("hej", "hej!", "hallå", "hejsan"): "Hej! Vad kan jag hjälpa dig med?",
-        ("hejdå", "hej då", "vi ses", "adjö"): "Du är alltid välkommen tillbaka."
-
+        ("hej", "hej!", "hallå", "hejsan", "hej på dig"): "Hej! Vad kan jag hjälpa dig med?",
+        ("hejdå", "hej då", "vi ses", "adjö"): "Ha en fin dag och välkommen tillbaka!"
     }
     for keys, response in greetings.items():
         if query.lower() in keys:
@@ -92,21 +90,28 @@ def svara():
             return
 
     # Filtrera irrelevanta frågor
-    irrelevanta = ["hur mår du", "vad gör du", "vad tycker du", "var bor du", "vem är du"]
+    irrelevanta = [
+        "hur mår du", "vad gör du", "vad tycker du", "var bor du", "vem är du",
+        "vab", "vård av barn", "tillfällig föräldrapenning"
+    ]
     if any(fr in query.lower() for fr in irrelevanta):
-        st.session_state.svar = format_svar(query, "Jag kan bara svara på frågor som rör bostadsbidrag, sjukpenning och föräldrapenning.")
-        st.session_state.query = ""
-        return
+        st.session_state.svar = format_svar(
+            query,
+            "Jag kan bara svara på frågor som rör bostadsbidrag, sjukpenning och föräldrapenning."
+        )
 
-    # Semantic search
-    try:
-        svar = semantic_search(query, st.session_state.vs)
-        svar = convert_markdown_lists(svar)
-        st.session_state.svar = format_svar(query, svar)
-    except Exception as e:
-        st.error(f"Något gick fel vid hämtning av svar: {e}")
+    # Kör semantic search bara om vi inte redan har ett svar
+    if st.session_state.svar == "":
+        try:
+            svar = semantic_search(query, st.session_state.vs)
+            svar = convert_markdown_lists(svar)
+            st.session_state.svar = format_svar(query, svar)
+        except Exception as e:
+            st.error(f"Något gick fel vid hämtning av svar: {e}")
 
-    st.session_state.clear_query = True
+    # Töm query i slutet
+    st.session_state.query = ""
+
 
 # CSS och design
 st.markdown("""
@@ -237,13 +242,15 @@ else:
 # Visa svar
 if st.session_state.svar:
     svar_text = st.session_state.svar.lower()
+    query = st.session_state.last_query.lower()
+
     is_unknown = (
         "det vet jag inte" in svar_text
         or "jag kan bara svara på frågor som rör" in svar_text
         or "det framgår inte" in svar_text
         or "jag heter viola" in svar_text
         or "vad kan jag hjälpa dig med" in svar_text
-        or "du är alltid välkommen tillbaka" in svar_text
+        or "välkommen tillbaka" in svar_text
     )
 
     if not is_unknown:
