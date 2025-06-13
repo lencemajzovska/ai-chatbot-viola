@@ -21,7 +21,6 @@ Thumbs.db
 .idea/
 
 # Streamlit
-.streamlit/
 .cache/
 
 # Notebook checkpoints
