@@ -12,19 +12,30 @@ def init_vectorstore_cached():
     return init_vectorstore()
 
 # Initiera session_state
-if "initialized" not in st.session_state:
-    st.session_state.initialized = True
-    st.session_state.vs = None
-    st.session_state.ready = False
-    st.session_state.last_query = ""
-    st.session_state.svar = ""
-    st.session_state.query = ""
+default_state = {
+    "initialized": True,
+    "vs": None,
+    "ready": False,
+    "last_query": "",
+    "svar": "",
+    "query": ""
+}
+for key, value in default_state.items():
+    if key not in st.session_state:
+        st.session_state[key] = value
 
 # Ladda vectorstore vid behov
 if st.session_state.vs is None:
     with st.spinner("Laddar kunskapsdatabasen..."):
         st.session_state.vs = init_vectorstore_cached()
     st.session_state.ready = True
+
+# Laddningskontroll
+if not st.session_state.ready or st.session_state.vs is None:
+    st.title("🤖 Fråga Viola")
+    st.subheader("Laddar kunskapsdatabasen...")
+    st.info("Appen startar strax, vänligen vänta ⏳")
+    st.stop()
 
 # Formatera fråga och svar som HTML
 def format_svar(query, svar):
@@ -58,8 +69,8 @@ def convert_markdown_lists(text):
 
 # Generera svar
 def svara():
-    if not st.session_state.ready:
-        st.warning("Vänta ett ögonblick - data laddas.")
+    if not st.session_state.ready or st.session_state.vs is None:
+        st.warning("Vänta ett ögonblick - kunskapsdatabasen laddas fortfarande.")
         return
 
     query = st.session_state.query.strip()
