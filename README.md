@@ -1,7 +1,6 @@
 # Viola – AI-chattbot 
 
 An AI chatbot that answers questions about Swedish social insurance benefits provided by **Försäkringskassan (The Swedish Social Insurance Agency).**
-
 The solution is built using **Retrieval-Augmented Generation (RAG)** and **Google Gemini,** with a web interface developed in **Streamlit.**
 
 ---
@@ -15,7 +14,7 @@ The solution is built using **Retrieval-Augmented Generation (RAG)** and **Googl
 ## Functionality
 
 - Uses the pre-trained Gemini model via Google AI Studio
-- Performs semantic search in a fact base created from official PDF documents from the Swedish Social Insurance Agency
+- Performs semantic search on a fact base created from official PDF documents
 - Provides fact-based and context-aware answers
 - System prompt is used to minimize hallucinations
 
@@ -36,15 +35,17 @@ The notebook `chatbot.ipynb` includes:
 
 - Model evaluation with test questions and answers
 - Automated scoring of response quality
-- Reflections and possible improvements for further development
+- Reflections and suggestions for further improvement
 
 ---
 
 ## Disclaimer
 
-This chatbot is for informational purposes only.
-It does **not** replace official advice or decisions from Försäkringskassan.
+This chatbot is for informational purposes only.  
+It does **not** replace official advice or decisions from Försäkringskassan.  
 For official guidance, always contact Försäkringskassan directly.
+
+---
 
 ## Developer
 
