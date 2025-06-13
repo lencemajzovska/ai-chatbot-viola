@@ -229,13 +229,17 @@ st.markdown("""
 
 # Inputfält
 if st.session_state.ready and st.session_state.vs is not None:
-    st.text_input(
-        label="Frågeruta (dold)",
-        placeholder="Skriv din fråga här...",
-        key="query",
-        on_change=svara,
-        label_visibility="collapsed"
-    )
+    with st.form("fraga_form"):
+        query_input = st.text_input(
+            label="Frågeruta (dold)",
+            placeholder="Skriv din fråga här...",
+            key="query",
+            label_visibility="collapsed"
+        )
+        submitted = st.form_submit_button("Fråga")
+
+    if submitted:
+        svara()
 else:
     st.info("Databasen laddas fortfarande... vänta ett ögonblick.")
 
