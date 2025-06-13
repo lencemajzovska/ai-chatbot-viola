@@ -85,6 +85,7 @@ def svara():
     greetings = {
         ("hej", "hej!", "hallå", "hejsan"): "Hej! Vad kan jag hjälpa dig med?",
         ("hejdå", "hej då", "vi ses", "adjö"): "Du är alltid välkommen tillbaka."
+
     }
     for keys, response in greetings.items():
         if query.lower() in keys:
