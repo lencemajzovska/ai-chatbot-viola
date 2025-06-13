@@ -1,52 +1,52 @@
-# Fråga Viola – AI-chattbot för Försäkringskassan
+# Viola – AI-chattbot 
 
-AI-chattbot som svarar på frågor om ersättningar från Försäkringskassan, baserat på **Retrieval-Augmented Generation (RAG)** och **Google Gemini**.
-
-Webbgränssnittet är byggt med **Streamlit**.
-
----
-
-## Testa appen online
-
-👉 [Öppna appen här](https://chatbot-viola.streamlit.app)
+An AI chatbot that answers questions about Swedish social insurance benefits provided by **Försäkringskassan (The Swedish Social Insurance Agency).**
+The solution is built using **Retrieval-Augmented Generation (RAG)** and **Google Gemini,** with a web interface developed in **Streamlit.**
 
 ---
 
-## Funktion
+## Live Demo
 
-- Använder förtränad Gemini-modell via Google AI Studio
-- Söker semantiskt i en faktabas baserad på PDF-dokument från Försäkringskassan
-- Ger faktabaserade och kontextstyrda svar
-- Systemprompt begränsar hallucinationer
+👉 [Open the app here](https://chatbot-viola.streamlit.app)
 
 ---
 
-## Funktioner i Streamlit-appen
+## Functionality
 
-- Ställ en fråga direkt i webbläsaren
-- AI svarar endast utifrån källtext från Försäkringskassan
-- Länk till källa eller kontaktinformation visas vid osäkerhet
-- Tydlig, enkel och användarfokuserad design
-
----
-
-## Utvärdering
-
-Notebooken `chatbot.ipynb` innehåller:
-
-- Testfrågor och svar
-- Automatisk poängsättning av svarens kvalitet
-- Reflektion och förbättringsförslag
+- Uses the pre-trained Gemini model via Google AI Studio
+- Performs semantic search in a fact base created from official PDF documents from the Swedish Social Insurance Agency
+- Provides fact-based and context-aware answers
+- System prompt is used to minimize hallucinations
 
 ---
 
-## Ansvarsfriskrivning
+## Features of the Streamlit App
 
-**Observera:** Denna bot är endast ett informationsstöd.
-Den ersätter **inte** Försäkringskassans rådgivning eller beslut.
-Vid osäkerhet kontakta alltid Försäkringskassan.
+- Ask questions directly in the browser
+- AI answers strictly based on official Försäkringskassan content
+- Displays source links or contact information if uncertainty arises
+- Clean, simple, and user-friendly design
 
-## Utvecklare
+---
+
+## Evaluation
+
+The notebook `chatbot.ipynb` includes:
+
+- Test questions and answers
+- Automated scoring of answer quality
+- Reflection and improvement suggestions
+
+---
+
+## Disclaimer
+
+Disclaimer
+**Important:** This chatbot is for informational purposes only.
+It does **not** replace official advice or decisions from Försäkringskassan.
+For official guidance, always contact Försäkringskassan directly.
+
+## Developer
 
 Lence Majzovska
 Data Science Student, EC Utbildning 2025
