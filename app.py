@@ -18,7 +18,8 @@ default_state = {
     "ready": False,
     "last_query": "",
     "svar": "",
-    "query": ""
+    "query": "",
+    "clear_query": False
 }
 for key, value in default_state.items():
     if key not in st.session_state:
@@ -74,10 +75,6 @@ def svara():
         return
 
     query = st.session_state.query.strip()
-
-    if query == st.session_state.last_query:
-        return
-
     st.session_state.last_query = query
 
     if not query:
@@ -111,7 +108,7 @@ def svara():
     except Exception as e:
         st.error(f"Något gick fel vid hämtning av svar: {e}")
 
-    st.session_state.query = ""
+    st.session_state.clear_query = True
 
 # CSS och design
 st.markdown("""
@@ -229,17 +226,13 @@ st.markdown("""
 
 # Inputfält
 if st.session_state.ready and st.session_state.vs is not None:
-    with st.form("fraga_form"):
-        query_input = st.text_input(
-            label="Frågeruta (dold)",
-            placeholder="Skriv din fråga här...",
-            key="query",
-            label_visibility="collapsed"
-        )
-        submitted = st.form_submit_button("Fråga")
-
-    if submitted:
-        svara()
+    st.text_input(
+        label="Frågeruta (dold)",
+        placeholder="Skriv din fråga här...",
+        key="query",
+        label_visibility="collapsed",
+        on_change=svara
+    )
 else:
     st.info("Databasen laddas fortfarande... vänta ett ögonblick.")
 
@@ -282,3 +275,7 @@ if st.session_state.svar:
                 {st.session_state.svar}
             </div>
         """, unsafe_allow_html=True)
+
+if st.session_state.get("clear_query", False):
+    st.session_state.query = ""
+    st.session_state.clear_query = False
