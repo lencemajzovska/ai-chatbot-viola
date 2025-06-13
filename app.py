@@ -78,7 +78,7 @@ def svara():
 
     if not query:
         st.session_state.svar = ""
-        st.session_state.query = ""
+        # st.session_state.query = ""
         return
 
     # Hälsningar
