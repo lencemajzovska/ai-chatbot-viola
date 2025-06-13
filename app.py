@@ -92,13 +92,15 @@ def svara():
     # Filtrera irrelevanta frågor
     irrelevanta = [
         "hur mår du", "vad gör du", "vad tycker du",
-        "var bor du", "vem är du", "vad sysslar du med",
+        "var bor du", "vad sysslar du med"
     ]
     if any(fr in query.lower() for fr in irrelevanta):
         st.session_state.svar = format_svar(
             query,
             "Jag kan bara svara på frågor som rör bostadsbidrag, sjukpenning och föräldrapenning."
         )
+        st.session_state.query = ""
+        return
 
     # Kör semantic search bara om vi inte redan har ett svar
     if st.session_state.svar == "":
