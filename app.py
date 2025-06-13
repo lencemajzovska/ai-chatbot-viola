@@ -32,7 +32,7 @@ if st.session_state.vs is None:
 
 # Laddningskontroll
 if not st.session_state.ready or st.session_state.vs is None:
-    st.title("🤖 Fråga Viola")
+    st.title("Fråga Viola")
     st.subheader("Laddar kunskapsdatabasen...")
     st.info("Appen startar strax, vänligen vänta ⏳")
     st.stop()
@@ -136,7 +136,6 @@ st.markdown("""
         border-radius: 8px !important;
         padding: .9rem 1.2rem !important;
         font-size: 1rem !important;
-        # transition: border 0.18s;
     }
     .stTextInput input::placeholder {
         color: #127247 !important;
