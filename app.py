@@ -279,3 +279,6 @@ if st.session_state.svar:
 if st.session_state.get("clear_query", False):
     st.session_state.query = ""
     st.session_state.clear_query = False
+
+    # Vänta tills response är färdigrenderad innan rerun
+    st.after_response(lambda: st.experimental_rerun())
