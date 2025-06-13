@@ -84,7 +84,7 @@ def svara():
     # Hälsningar
     greetings = {
         ("hej", "hej!", "hallå", "hejsan"): "Hej! Vad kan jag hjälpa dig med?",
-        ("hejdå", "hej då", "vi ses", "adjö"): "Hejdå! Du är alltid välkommen tillbaka."
+        ("hejdå", "hej då", "vi ses", "adjö"): "Du är alltid välkommen tillbaka."
     }
     for keys, response in greetings.items():
         if query.lower() in keys:
@@ -225,13 +225,16 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Inputfält
-st.text_input(
-    label="Frågeruta (dold)",
-    placeholder="Skriv din fråga här...",
-    key="query",
-    on_change=svara,
-    label_visibility="collapsed"
-)
+if st.session_state.ready and st.session_state.vs is not None:
+    st.text_input(
+        label="Frågeruta (dold)",
+        placeholder="Skriv din fråga här...",
+        key="query",
+        on_change=svara,
+        label_visibility="collapsed"
+    )
+else:
+    st.info("Databasen laddas fortfarande... vänta ett ögonblick.")
 
 # Visa svar
 if st.session_state.svar:
