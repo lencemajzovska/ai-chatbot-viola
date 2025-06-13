@@ -77,9 +77,7 @@ def svara():
     query = st.session_state.query.strip()
     st.session_state.last_query = query
 
-    if not query:
-        st.session_state.svar = ""
-        return
+    st.session_state.svar = ""
 
     # Hälsningar
     greetings = {
@@ -275,10 +273,3 @@ if st.session_state.svar:
                 {st.session_state.svar}
             </div>
         """, unsafe_allow_html=True)
-
-if st.session_state.get("clear_query", False):
-    st.session_state.query = ""
-    st.session_state.clear_query = False
-
-    # Vänta tills response är färdigrenderad innan rerun
-    st.after_response(lambda: st.experimental_rerun())
